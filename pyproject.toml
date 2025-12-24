@@ -6,6 +6,10 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "langchain-core>=1.2.5",
+    "langchain-ollama>=1.0.1",
+    "langgraph>=1.0.5",
     "mcp[cli]>=1.25.0",
+    "ollama>=0.6.1",
     "playwright>=1.57.0",
 ]

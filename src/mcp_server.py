@@ -4,12 +4,12 @@ import logging
 from contextlib import asynccontextmanager
 import json
 import sys
-from pathlib import Path
-
-# aggiunge src al sys.path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
 from helper import clean_html_content
+
+#GLOBAL VARIABLES
+HEADLESS = True  # Set to True to run browser in headless mode
+PLAYWRIGHT_SLOW_MO = 1000  # Set to a positive integer to slow down Playwright operations for debugging (in milliseconds)
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
 # Configure logging
 logging.basicConfig(
@@ -34,8 +34,11 @@ async def browser_lifespan(server: FastMCP):
     """Handles browser setup and teardown."""
     logger.info("Starting browser...")
     p = await async_playwright().start()
-    browser = await p.chromium.launch(headless=False)
-    page = await browser.new_page()
+    browser = await p.chromium.launch(headless=HEADLESS, slow_mo=PLAYWRIGHT_SLOW_MO)
+    page = await browser.new_page(
+        user_agent=USER_AGENT,
+        viewport={"width": 1920, "height": 1080}
+    )
     logger.info("Browser started.")
 
     # Save to global state
@@ -245,7 +248,7 @@ async def get_interactive_elements() -> str:
         raise RuntimeError("Browser is not initialized.")
 
     # Execute JavaScript in the browser to extract elements
-    elements = await page.evaluate("""() => {
+    elements = await page.evaluate(r"""() => {
         const items = [];
         // Query for commonly interactive elements
         const query = 'button, a, input, select, textarea, [role="button"], [onclick]';
@@ -268,7 +271,7 @@ async def get_interactive_elements() -> str:
             // 3. Extract meaningful text (name - what the user sees)
             let name = el.innerText || el.placeholder || el.value || el.getAttribute('aria-label') || "";
             // Clean up whitespace and truncate long text
-            name = name.replace(/\\s+/g, ' ').trim().substring(0, 100);
+            name = name.replace(/\\\\s+/g, ' ').trim().substring(0, 100);
 
             // Ignore empty elements unless they are form inputs
             if (!name && !['input', 'select', 'textarea'].includes(el.tagName.toLowerCase())) return;
